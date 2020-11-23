@@ -49,11 +49,42 @@ void diamondStep(void *array, int step, int size, float magnitude, int maxR, int
     
 }
 
-void squareStep(void *array, int step, int size, float magnitude, int maxR, int timesMaxR) {
+void squareStep(void *array, int step, int size, int *prevRows, int *prevDist, float magnitude, int maxR, int timesMaxR) {
     float (*arr)[size][size] = (float (*)[size][size]) array;
 
     //Number of squares to calculate in this step
+    //For first square step, numRows is 3, otherwise calculated from previous square step numRows
+    //according to formula numRows = (prevRows) + (prevRows-1)
+    *prevRows = (step == 2) ? 3 : (*prevRows) + ((*prevRows)-1);
+    int *newDist = prevDist;
     
+    *newDist = (step == 2) ? size - 1 : *prevDist / 2;
+    int halfDist = *newDist / 2; //Used for offset to descriptor points that avg is taken from
+    int numBigRows = *prevRows / 2; //If there are 5 rows with square points, 2 are big
+    int numSmallRows = *prevRows - numBigRows; //If there are 5 rows w/ square points, 3 are big
+    int sizeBigRow = numSmallRows;
+    int sizeSmallRow = numBigRows;
+    int smallOffset = (size / sizeSmallRow) / 2;
+    
+    //Being on a big or small col determines offset for start pos on that col
+    for (int i = 0; i < *prevRows; i++) { //Across columns
+        int smallOrBig = (i % 2) == 0; //If true, small, else big
+        for (int j = 0; j < ((smallOrBig) ? sizeSmallRow : sizeBigRow); j++) { //i%2==0 then small col, else big col
+            int jOffset = (smallOrBig) ? smallOffset : 0;
+            //Use i1, j1 to calculate center of square position
+            int i1, j1;
+            i1 = i * smallOffset;
+            j1 = (j * (*newDist)) + jOffset;
+            float up, bottom, left, right;
+            //Points on square step on edges of grid only have three descriptor points unless you wrap around
+            up = (*arr)[i1][((j1 - halfDist) < 0) ? ((size - 1) - halfDist) : (j1 - halfDist)]; //just size - halfDist might be more intuitive but lands on an unsolved point
+            bottom = (*arr)[i1][((j1 + halfDist) > (size-1)) ? (halfDist) : (j1 + halfDist)];
+            left = (*arr)[((i1 - halfDist) < 0) ? ((size - 1) - halfDist) : (i1 - halfDist)][j1];
+            right = (*arr)[((i1 + halfDist) > (size-1)) ? (halfDist) : (i1 + halfDist)][j1];
+            float avg = (up + bottom + left + right) / 4;
+            (*arr)[i1][j1] = avg + (randomNum(maxR, timesMaxR) * magnitude);
+        }
+    }
 }
 
 void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, float c2, float c3, float c4) {
@@ -77,6 +108,8 @@ void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, floa
     float magnitude = 1.0f;
     float magChange = magnitude / (float) numSteps;
 
+    int prevSquareStepRows = 0;
+    int prevSquareStepDist = 0;
     for (int step = 0; step < numSteps; step++) {
 
         if (step == 0) {
@@ -90,8 +123,10 @@ void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, floa
 
         int whichStep = step % 2; //0 is square step, 1 is diamond step
         if (whichStep == 0) {
-            squareStep(array, step, size);
+            //printf("Attempting square step\n");
+            squareStep(array, step, size, &prevSquareStepRows, &prevSquareStepDist, 1.0f, maxRand, timesMaxR);
         } else {
+            //printf("Attempting diamond step\n");
             diamondStep(array, step, size, 1.0f, maxRand, timesMaxR);
         }
         magnitude -= magChange;
