@@ -8,37 +8,55 @@
 
 int randSeeded = 0;
 
-inline int randomNum(int maxRand) {
-    return rand() % (maxRand+1);
+float randomNum(int maxRand, int timesMaxR) {
+    int max = maxRand * timesMaxR;
+    int ran = rand() % (max+1);
+    //Sign decides whether random change in terrain should be up or down (pos or neg)
+    float sign = (rand() % 2) ? -1.0f : 1.0f;
+    return ((float) ran / (float) timesMaxR) * sign;
 }
 
-//Array param in diamondStep() and squareStep() used to pass arbitrary 2D array size
-void diamondStep(void *array, int step, int size) {
+//array param in diamondStep() and squareStep() used to pass arbitrary 2D array size
+void diamondStep(void *array, int step, int size, float magnitude, int maxR, int timesMaxR) {
     //Cast to 2D array
     float (*arr)[size][size] = (float (*)[size][size]) array;
+    
     //Number of diamonds to calculate in this step
     //Step 1 is 1 diamond, step 2 is 4 diamonds, step 3 is 16 diamonds
     //+0.5 is to stop rounding errors
     int numDiamonds = (int) (pow(2, step-1) + 0.5);
     int numRows = (int) (sqrt(numDiamonds) + 0.5);
-    printf("Step: %i\n", step); //1, 3, 5, etc.
-    printf("Number diamonds: %i\n", numDiamonds); //1, 4, 16
-    printf("NumRows: %i\n", numRows); //1, 2, 4
+    
+    //Distance between diamonds: For 1, 2, 3 if 1 and 3 are diamonds distBetween is 2
+    //ex: For first step though there is only one diamond, distBetween assumes grid continues
     int distBetween = size / numRows;
+    int db2 = distBetween / 2; //Used in expressions, describes offset of square points & offset of diamonds from edge
+    
     for (int i = 0; i < numRows; i++) { //Across columns of diamonds: Left->Right
         for (int j = 0; j < numRows; j++) { //Down column of diamonds: Top->Bottom
-            
-            (*arr)[(i*distBetween) + (distBetween/2)][(j*distBetween) + (distBetween/2)] = 5555.55f;
+            //i1 and j1 calculate center of diamond position
+            int i1 = (i*distBetween) + db2;
+            int j1 = (j*distBetween) + db2;
+            float upLeft, upRight, bottomLeft, bottomRight;
+            upLeft = (*arr)[i1-db2][j1-db2];
+            upRight = (*arr)[i1+db2][j1-db2];
+            bottomLeft = (*arr)[i1-db2][j1+db2];
+            bottomRight = (*arr)[i1+db2][j1+db2];
+            float avg = (upLeft + upRight + bottomLeft + bottomRight) / 4;
+            (*arr)[i1][j1] = avg + (randomNum(maxR, timesMaxR) * magnitude);
         }
     }
     
 }
 
-void squareStep(void *array, int step, int size) {
+void squareStep(void *array, int step, int size, float magnitude, int maxR, int timesMaxR) {
     float (*arr)[size][size] = (float (*)[size][size]) array;
+
+    //Number of squares to calculate in this step
+    
 }
 
-void diamondSquareGenHeightmap(int n, int maxRand, float c1, float c2, float c3, float c4) {
+void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, float c2, float c3, float c4) {
     if (randSeeded == 0) { //If random isn't seeded, seed rand
         srand(time(0));
         randSeeded = 1;
@@ -55,6 +73,10 @@ void diamondSquareGenHeightmap(int n, int maxRand, float c1, float c2, float c3,
     int numSteps = ((int) (log10((size-1) * (size-1)) / log10(2)) + 0.5) + 1; 
     printf("Number of steps: %i\n", numSteps);
 
+    //Decreases at each step to smooth terrain generation
+    float magnitude = 1.0f;
+    float magChange = magnitude / (float) numSteps;
+
     for (int step = 0; step < numSteps; step++) {
 
         if (step == 0) {
@@ -70,8 +92,9 @@ void diamondSquareGenHeightmap(int n, int maxRand, float c1, float c2, float c3,
         if (whichStep == 0) {
             squareStep(array, step, size);
         } else {
-            diamondStep(array, step, size);
+            diamondStep(array, step, size, 1.0f, maxRand, timesMaxR);
         }
+        magnitude -= magChange;
     }
 
 
@@ -85,6 +108,6 @@ void diamondSquareGenHeightmap(int n, int maxRand, float c1, float c2, float c3,
 }
 
 int main() {
-    diamondSquareGenHeightmap(3, 5, 0.5f, 0.5f, 0.5f, 0.5f);
+    diamondSquareGenHeightmap(3, 1, 1000, 0.5f, 0.5f, 0.5f, 0.5f);
     return 0;
 }
