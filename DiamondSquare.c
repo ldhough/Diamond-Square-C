@@ -87,22 +87,19 @@ void squareStep(void *array, int step, int size, int *prevRows, int *prevDist, f
     }
 }
 
-void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, float c2, float c3, float c4) {
+void diamondSquareGenHeightmap(void *arr, int size, int maxRand, int timesMaxR, float c1, float c2, float c3, float c4) {
+    //Cast to 2D float array
+    float (*array)[size][size] = (float (*)[size][size]) arr;
+
     if (randSeeded == 0) { //If random isn't seeded, seed rand
         srand(time(0));
         randSeeded = 1;
     }
-    //+0.5 is to ensure no rounding errors, pow returns double
-    //diamond-square algorithm works on 2^n + 1 size arrays
-    int size = ((int) (pow(2, n) + 0.5)) + 1;
-    printf("Size: %i\n", size);
-    float array[size][size];
 
     //Total number of steps (diamond & square)
     //+0.5 is to ensure no rounding errors, whole number from log/log expression is expected
     //3x3 has 3 steps, 5x5 has 5 steps, 9x9 has 7 steps
     int numSteps = ((int) (log10((size-1) * (size-1)) / log10(2)) + 0.5) + 1; 
-    printf("Number of steps: %i\n", numSteps);
 
     //Decreases at each step to smooth terrain generation
     float magnitude = 1.0f;
@@ -114,24 +111,32 @@ void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, floa
 
         if (step == 0) {
             //Initialize corners on first step
-            array[0][0] = c1; //top left
-            array[size-1][0] = c2; //top right
-            array[0][size-1] = c3; //bottom left
-            array[size-1][size-1] = c4; //bottom right
+            (*array)[0][0] = c1; //top left
+            (*array)[size-1][0] = c2; //top right
+            (*array)[0][size-1] = c3; //bottom left
+            (*array)[size-1][size-1] = c4; //bottom right
             continue;
         }
 
         int whichStep = step % 2; //0 is square step, 1 is diamond step
         if (whichStep == 0) {
             //printf("Attempting square step\n");
-            squareStep(array, step, size, &prevSquareStepRows, &prevSquareStepDist, 1.0f, maxRand, timesMaxR);
+            squareStep((*array), step, size, &prevSquareStepRows, &prevSquareStepDist, 1.0f, maxRand, timesMaxR);
         } else {
             //printf("Attempting diamond step\n");
-            diamondStep(array, step, size, 1.0f, maxRand, timesMaxR);
+            diamondStep((*array), step, size, 1.0f, maxRand, timesMaxR);
         }
         magnitude -= magChange;
     }
+}
 
+int main() {
+    int n = 3;
+    //+0.5 is to ensure no rounding errors, pow returns double
+    //diamond-square algorithm works on 2^n + 1 size arrays
+    int size = ((int) (pow(2, n) + 0.5)) + 1;
+    float array[size][size];
+    diamondSquareGenHeightmap(array, size, 1, 1000, 0.5f, 0.5f, 0.5f, 0.5f);
 
     //Check contents of heightmap
     for (int i = 0; i < size; i++) {
@@ -140,9 +145,5 @@ void diamondSquareGenHeightmap(int n, int maxRand, int timesMaxR, float c1, floa
         }
         printf("\n");
     }
-}
-
-int main() {
-    diamondSquareGenHeightmap(3, 1, 1000, 0.5f, 0.5f, 0.5f, 0.5f);
     return 0;
 }
