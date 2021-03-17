@@ -23,8 +23,7 @@ void diamondStep(void *array, int step, int size, float magnitude, int maxR, int
     
     //Number of diamonds to calculate in this step
     //Step 1 is 1 diamond, step 2 is 4 diamonds, step 3 is 16 diamonds
-    //+0.5 is to stop rounding errors
-    int numDiamonds = (int) (pow(2, step-1) + 0.5);
+    int numDiamonds = 1 << step-1;
     int numRows = (int) (sqrt(numDiamonds) + 0.5);
     
     //Distance between diamonds: For 1, 2, 3 if 1 and 3 are diamonds distBetween is 2
@@ -131,10 +130,9 @@ void diamondSquareGenHeightmap(void *arr, int size, int maxRand, int timesMaxR, 
 }
 
 int main() {
-    int n = 3;
-    //+0.5 is to ensure no rounding errors, pow returns double
+    int n = 10;
     //diamond-square algorithm works on 2^n + 1 size arrays
-    int size = ((int) (pow(2, n) + 0.5)) + 1;
+    int size = (2 << n) + 1;
     float array[size][size];
     diamondSquareGenHeightmap(array, size, 1, 1000, 0.5f, 0.5f, 0.5f, 0.5f);
 
@@ -145,5 +143,6 @@ int main() {
         }
         printf("\n");
     }
+    printf("Size: %i\n", size);
     return 0;
 }
