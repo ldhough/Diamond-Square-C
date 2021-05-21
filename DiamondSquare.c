@@ -132,7 +132,7 @@ void diamondSquareGenHeightmap(void *arr, int size, int maxRand, int timesMaxR, 
 int main() {
     int n = 10;
     //diamond-square algorithm works on 2^n + 1 size arrays
-    int size = (2 << n) + 1;
+    int size = (1 << n) + 1;
     float array[size][size];
     diamondSquareGenHeightmap(array, size, 1, 1000, 0.5f, 0.5f, 0.5f, 0.5f);
 
